@@ -8,6 +8,7 @@ import Link from 'next/link';
 export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
+  const [examTitle, setExamTitle] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('');
@@ -25,11 +26,18 @@ export default function UploadPage() {
 
       setError(null);
       setFile(selectedFile);
+      // Pre-fill title if empty
+      if (!examTitle) {
+        setExamTitle(selectedFile.name.split('.')[0]);
+      }
     }
   };
 
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file || !examTitle.trim()) {
+      setError('Please provide an exam title and select a file.');
+      return;
+    };
 
     setIsUploading(true);
     setError(null);
@@ -37,6 +45,7 @@ export default function UploadPage() {
 
     const formData = new FormData();
     formData.append('file', file);
+    formData.append('title', examTitle);
 
     try {
       const response = await fetch('/api/upload', {
@@ -74,6 +83,21 @@ export default function UploadPage() {
         </header>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+          <div className="mb-8">
+            <label htmlFor="title" className="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-2">
+              Exam Title
+            </label>
+            <input
+              type="text"
+              id="title"
+              value={examTitle}
+              onChange={(e) => setExamTitle(e.target.value)}
+              placeholder="e.g. AWS Solutions Architect - Practice Exam"
+              className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white outline-none transition-all text-lg font-medium"
+              disabled={isUploading}
+            />
+          </div>
+
           <div 
             className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all ${
               file ? 'border-indigo-500 bg-indigo-50' : 'border-gray-300 hover:border-gray-400'

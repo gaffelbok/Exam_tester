@@ -25,8 +25,8 @@ export default function ExamPage() {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedOptions, setSelectedOptions] = useState<number[]>([]);
-  const [showExplanation, setShowExplanation] = useState(false);
+  const [selectedOptions, setSelectedOptions] = useState<Record<number, number[]>>({});
+  const [showExplanation, setShowExplanation] = useState<Record<number, boolean>>({});
   const [loading, setLoading] = useState(true);
   const [score, setScore] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
@@ -48,24 +48,34 @@ export default function ExamPage() {
   </div>;
 
   const currentQuestion = questions[currentIndex];
+  const currentSelected = selectedOptions[currentIndex] || [];
+  const currentShown = showExplanation[currentIndex] || false;
 
   const handleOptionToggle = (index: number) => {
-    if (showExplanation) return;
+    if (currentShown) return;
     
-    // For now, assuming single choice if only one correct index, or multiple if more.
-    // Let's implement multi-select logic.
-    if (selectedOptions.includes(index)) {
-      setSelectedOptions(selectedOptions.filter(i => i !== index));
+    let newSelected: number[];
+    if (currentSelected.includes(index)) {
+      newSelected = currentSelected.filter(i => i !== index);
     } else {
-      setSelectedOptions([...selectedOptions, index]);
+      newSelected = [...currentSelected, index];
     }
+    
+    setSelectedOptions({
+      ...selectedOptions,
+      [currentIndex]: newSelected
+    });
   };
 
   const checkAnswer = () => {
-    setShowExplanation(true);
+    setShowExplanation({
+      ...showExplanation,
+      [currentIndex]: true
+    });
+    
     const isCorrect = 
-      selectedOptions.length === currentQuestion.correct_indexes.length &&
-      selectedOptions.every(val => currentQuestion.correct_indexes.includes(val));
+      currentSelected.length === currentQuestion.correct_indexes.length &&
+      currentSelected.every(val => currentQuestion.correct_indexes.includes(val));
     
     if (isCorrect) {
       setScore(s => s + 1);
@@ -75,10 +85,14 @@ export default function ExamPage() {
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setSelectedOptions([]);
-      setShowExplanation(false);
     } else {
       setIsFinished(true);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
     }
   };
 
@@ -91,7 +105,7 @@ export default function ExamPage() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Exam Completed!</h2>
           <p className="text-gray-600 mb-8">
-            You scored <span className="text-indigo-600 font-bold">{score}</span> out of <span className="font-bold">{questions.length}</span> questions.
+            You completed <span className="text-indigo-600 font-bold">{questions.length}</span> questions.
           </p>
           <div className="space-y-3">
             <button
@@ -99,8 +113,8 @@ export default function ExamPage() {
                 setCurrentIndex(0);
                 setScore(0);
                 setIsFinished(false);
-                setSelectedOptions([]);
-                setShowExplanation(false);
+                setSelectedOptions({});
+                setShowExplanation({});
               }}
               className="w-full py-3 px-4 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
@@ -147,12 +161,12 @@ export default function ExamPage() {
 
             <div className="space-y-4">
               {currentQuestion.options.map((option, idx) => {
-                const isSelected = selectedOptions.includes(idx);
+                const isSelected = currentSelected.includes(idx);
                 const isCorrect = currentQuestion.correct_indexes.includes(idx);
                 
                 let optionClasses = "relative w-full text-left p-4 rounded-xl border-2 transition-all duration-200 flex items-start space-x-3 group";
                 
-                if (showExplanation) {
+                if (currentShown) {
                   if (isCorrect) {
                     optionClasses += " border-emerald-500 bg-emerald-50 text-emerald-900 ring-1 ring-emerald-500";
                   } else if (isSelected && !isCorrect) {
@@ -172,7 +186,7 @@ export default function ExamPage() {
                   <button
                     key={idx}
                     onClick={() => handleOptionToggle(idx)}
-                    disabled={showExplanation}
+                    disabled={currentShown}
                     className={optionClasses}
                   >
                     <div className={cn(
@@ -182,8 +196,8 @@ export default function ExamPage() {
                       {String.fromCharCode(65 + idx)}
                     </div>
                     <span className="flex-grow">{option}</span>
-                    {showExplanation && isCorrect && <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />}
-                    {showExplanation && isSelected && !isCorrect && <XCircle className="h-5 w-5 text-rose-500 flex-shrink-0" />}
+                    {currentShown && isCorrect && <CheckCircle className="h-5 w-5 text-emerald-500 flex-shrink-0" />}
+                    {currentShown && isSelected && !isCorrect && <XCircle className="h-5 w-5 text-rose-500 flex-shrink-0" />}
                   </button>
                 );
               })}
@@ -191,18 +205,27 @@ export default function ExamPage() {
           </div>
 
           <div className="bg-gray-50 border-t border-gray-100 px-8 py-6 flex justify-between items-center">
-            {!showExplanation ? (
+            <button
+              onClick={handlePrevious}
+              disabled={currentIndex === 0}
+              className="inline-flex items-center px-4 py-2 text-gray-600 hover:text-indigo-600 disabled:opacity-30 disabled:hover:text-gray-600 transition-colors font-medium"
+            >
+              <ChevronLeft className="mr-1 h-5 w-5" />
+              Previous
+            </button>
+
+            {!currentShown ? (
               <button
                 onClick={checkAnswer}
-                disabled={selectedOptions.length === 0}
-                className="ml-auto inline-flex items-center px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                disabled={currentSelected.length === 0}
+                className="inline-flex items-center px-6 py-2.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
               >
                 Check Answer
               </button>
             ) : (
               <button
                 onClick={handleNext}
-                className="ml-auto inline-flex items-center px-6 py-2.5 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all"
+                className="inline-flex items-center px-6 py-2.5 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-800 transition-all"
               >
                 {currentIndex < questions.length - 1 ? "Next Question" : "Finish Quiz"}
                 <ChevronRight className="ml-2 h-5 w-5" />
@@ -211,7 +234,7 @@ export default function ExamPage() {
           </div>
         </div>
 
-        {showExplanation && (
+        {currentShown && (
           <div className="mt-8 animate-in fade-in slide-in-from-top-4 duration-300">
             <div className="bg-white p-8 rounded-2xl border border-gray-200 shadow-sm">
               <div className="flex items-start space-x-3 mb-4">

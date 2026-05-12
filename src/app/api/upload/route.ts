@@ -13,6 +13,7 @@ export async function POST(request: Request) {
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const manualTitle = formData.get('title') as string;
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
@@ -81,7 +82,7 @@ export async function POST(request: Request) {
 
     // Save to Database
     const info = db.prepare('INSERT INTO exams (title, description) VALUES (?, ?)').run(
-      quizData.title || file.name.split('.')[0], 
+      manualTitle || quizData.title || file.name.split('.')[0], 
       quizData.description || `Generated from ${file.name}`
     );
     const examId = info.lastInsertRowid;

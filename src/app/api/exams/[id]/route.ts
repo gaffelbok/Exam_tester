@@ -14,3 +14,21 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete exam' }, { status: 500 });
   }
 }
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  const { id } = await params;
+  try {
+    const { title } = await request.json();
+    if (!title) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 });
+    }
+    db.prepare('UPDATE exams SET title = ? WHERE id = ?').run(title, id);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(`Failed to update exam ${id}:`, error);
+    return NextResponse.json({ error: 'Failed to update exam' }, { status: 500 });
+  }
+}
