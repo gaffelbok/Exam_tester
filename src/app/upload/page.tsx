@@ -9,6 +9,7 @@ export default function UploadPage() {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [examTitle, setExamTitle] = useState('');
+  const [mode, setMode] = useState<'extract' | 'generate'>('extract');
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('');
@@ -46,6 +47,7 @@ export default function UploadPage() {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('title', examTitle);
+    formData.append('mode', mode);
 
     try {
       const response = await fetch('/api/upload', {
@@ -96,6 +98,38 @@ export default function UploadPage() {
               className="w-full p-4 bg-gray-50 border-2 border-gray-100 rounded-xl focus:border-indigo-500 focus:bg-white outline-none transition-all text-lg font-medium"
               disabled={isUploading}
             />
+          </div>
+
+          <div className="mb-8">
+            <label className="block text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
+              AI Mode
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <button
+                type="button"
+                onClick={() => setMode('extract')}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  mode === 'extract' 
+                    ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' 
+                    : 'border-gray-100 hover:border-gray-200 bg-gray-50'
+                }`}
+              >
+                <div className="font-bold text-gray-900">Extract Questions</div>
+                <div className="text-xs text-gray-500 mt-1">Best for practice exams or PDFs with existing questions.</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('generate')}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  mode === 'generate' 
+                    ? 'border-indigo-600 bg-indigo-50 ring-1 ring-indigo-600' 
+                    : 'border-gray-100 hover:border-gray-200 bg-gray-50'
+                }`}
+              >
+                <div className="font-bold text-gray-900">Generate from Content</div>
+                <div className="text-xs text-gray-500 mt-1">Best for summaries, notes, or course content without questions.</div>
+              </button>
+            </div>
           </div>
 
           <div 
